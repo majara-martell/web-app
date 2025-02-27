@@ -57,4 +57,64 @@ function getCategories() {
     });
 }
 
-module.exports = { initialize, getAllItems, getPublishedItems, getCategories };
+function addItem(itemData) {
+    return new Promise ((resolve, reject) => {
+        try {
+            itemData.published = itemData.published ? true : false;// avoid using if else here
+
+            itemData.id = items.length + 1;
+            
+            items.push(itemData);
+            
+            resolve(itemData);
+
+        } catch(err) {
+            reject("Error adding item: " + err);
+        }
+
+    }); 
+
+}
+
+function getItemsByCategory(category) {
+    return new Promise((resolve, reject) => {
+        // Filter the items array to match the category
+        const filteredItems = items.filter(item => item.category === category);
+        
+        if (filteredItems.length > 0) {
+            resolve(filteredItems);
+        } else {
+            reject("No results returned");
+        }
+    });
+}
+
+function getItemsByMinDate(minDateStr) {
+    return new Promise((resolve, reject) => {
+
+        const filteredItems = items.filter(item => new Date(item.postDate) >= new Date(minDateStr));
+        
+        if (filteredItems.length > 0) {
+            resolve(filteredItems);
+        } else {
+            reject("No results returned");
+        }
+    });
+}
+
+function getItemById(id) {
+    return new Promise((resolve, reject) => {
+
+        const item = items.find(item => item.id == id);
+
+        if (item) {
+            resolve(item); 
+        } else {
+            reject("No result returned");
+        }
+    });
+}
+
+module.exports = { addItem, initialize, getAllItems, getPublishedItems, getCategories, 
+    getItemsByCategory, getItemsByMinDate, getItemById};
+
