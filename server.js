@@ -1,7 +1,12 @@
 /*********************************************************************************
-WEB322 – Assignment 03
-I declare that this assignment is my own work in accordance with Seneca Academic Policy. No part * of this assignment has
-been copied manually or electronically from any other source (including 3rd party web sites) or distributed to other students.
+WEB322 – Assignment 04
+I declare that this assignment is my own work in accordance with Seneca 
+Academic Policy. No part * of this assignment has been copied manually or
+electronically from any other source (including 3rd party web sites) or 
+distributed to other students. I acknowledge that violation of this policy
+to any degree results in a ZERO for this assignment and possible failure of
+the course.
+
 Name: Matias Alejandro Jara Martell
 Student ID: 151838232
 Date: 2025 02 27
@@ -9,10 +14,12 @@ Cyclic Web App URL: web322-app-nine-chi.vercel.app
 GitHub Repository URL: https://github.com/majara-martell_seneca/web322-app.git
 ********************************************************************************/
 const express = require("express");
+//const exphbs = require("express-handlebars");//express handlebars
 const app = express();
-const path = require('path');
+const path = require("path");
 const sv = require("./store-service.js"); 
-
+const itemData = require("./store-service");
+const ejsLayouts = require('express-ejs-layouts');
 //Cloudinary: more libraries
 const multer = require("multer"); 
 const cloudinary = require('cloudinary').v2; 
@@ -30,6 +37,21 @@ cloudinary.config({
 });
 
 const upload = multer(); 
+
+app.use(function(req,res,next){
+    //req.path: contains the url path of the current req: sample.com/items/add
+    let route = req.path.substring(1);  //req.path: '/items/add' -> 'items/add'
+    app.locals.activeRoute = "/" + (isNaN(route.split('/')[1]) ? route.replace(/\/(?!.*)/, "") : route.replace(/\/(.*)/, ""));
+    app.locals.viewingCategory = req.query.category;
+    next();
+
+    
+});
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(ejsLayouts);
+
 
 app.post('/items/add', upload.single("featureImage"),(req,res) => {
     if(req.file){ 
@@ -83,39 +105,132 @@ app.post('/items/add', upload.single("featureImage"),(req,res) => {
 });
 
 app.use(express.static('public'));//makes the public folder publicly accessible 
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => { 
-    res.sendFile(path.join(__dirname, 'views', 'about.html')); 
+    //res.sendFile(path.join(__dirname, 'views', 'about.html')); 
+    res.render('about');//about.ejs
 });
 
 app.get('/about', (req, res) => {
-    res.sendFile(path.join(__dirname, 'views', 'about.html'));
+    //res.sendFile(path.join(__dirname, 'views', 'about.html'));
+    res.render('about');//about.ejs
 });
 
-app.get("/shop", (req, res) => {
-    sv.getPublishedItems()  
-        .then((data) => res.json(data)) 
-        .catch((err) => res.status(404).json({ message: err })); 
-});
+//retrieved from the link provided
+app.get("/shop", async (req, res) => {
+    // Declare an object to store properties for the view
+    let viewData = {};
+  
+    try {
+      // declare empty array to hold "item" objects
+      let items = [];
+  
+      // if there's a "category" query, filter the returned items by category
+      if (req.query.category) {
+        // Obtain the published "item" by category
+        items = await itemData.getPublishedItemsByCategory(req.query.category);
+      } else {
+        // Obtain the published "items"
+        items = await itemData.getPublishedItems();
+      }
+  
+      // sort the published items by itemDate
+      items.sort((a, b) => new Date(b.itemDate) - new Date(a.itemDate));
+  
+      // get the latest item from the front of the list (element 0)
+      let item = items[0];
+  
+      // store the "items" and "item" data in the viewData object (to be passed to the view)
+      viewData.items = items;
+      viewData.item = item;
+    } catch (err) {
+      viewData.message = "no results";
+    }
+  
+    try {
+      // Obtain the full list of "categories"
+      let categories = await itemData.getCategories();
+  
+      // store the "categories" data in the viewData object (to be passed to the view)
+      viewData.categories = categories;
+    } catch (err) {
+      viewData.categoriesMessage = "no results";
+    }
+  
+    // render the "shop" view with all of the data (viewData)
+    res.render("shop", { data: viewData });
+  });
 
+  
+app.get('/shop/:id', async (req, res) => {
+
+    // Declare an object to store properties for the view
+    let viewData = {};
+  
+    try{
+  
+        // declare empty array to hold "item" objects
+        let items = [];
+  
+        // if there's a "category" query, filter the returned items by category
+        if(req.query.category){
+            // Obtain the published "items" by category
+            items = await itemData.getPublishedItemsByCategory(req.query.category);
+        }else{
+            // Obtain the published "items"
+            items = await itemData.getPublishedItems();
+        }
+  
+        // sort the published items by itemDate
+        items.sort((a,b) => new Date(b.itemDate) - new Date(a.itemDate));
+  
+        // store the "items" and "item" data in the viewData object (to be passed to the view)
+        viewData.items = items;
+  
+    }catch(err){
+        viewData.message = "no results";
+    }
+  
+    try{
+        // Obtain the item by "id"
+        viewData.item = await itemData.getItemById(req.params.id);
+    }catch(err){
+        viewData.message = "no results"; 
+    }
+  
+    try{
+        // Obtain the full list of "categories"
+        let categories = await itemData.getCategories();
+  
+        // store the "categories" data in the viewData object (to be passed to the view)
+        viewData.categories = categories;
+    }catch(err){
+        viewData.categoriesMessage = "no results"
+    }
+  
+    // render the "shop" view with all of the data (viewData)
+    res.render("shop", {data: viewData})
+  });
+  
 app.get("/items", (req, res) => {
     if(req.query.category){// query = ? | if i see: /items?category=value | ? represents query 
         sv.getItemsByCategory(req.query.category)
-            .then((data) => res.json(data)) 
-            .catch((err) => res.status(404).json({ message: err })); 
+            .then((data) => res.render("items", {items: data}))
+            .catch((err) => res.render("posts", {message: "no results"}))
     } else if(req.query.minDate) { 
         sv.getItemsByMinDate(req.query.minDate)
-            .then((data) => res.json(data))
-            .catch((err) => res.status(404).json({message : err}));
+            .then((data) => res.render("items", {items: data}))
+            .catch((err) => res.render("posts", {message: "no results"}))
     } else {
         sv.getAllItems()
-            .then((data) => res.json(data)) 
-            .catch((err) => res.status(404).json({ message: err })); 
+            .then((data) => res.render("items", {items: data}))
+            .catch((err) => res.render("posts", {message: "no results"}))
     }
 });
 
-app.get("/item/:value", (req, res) => { //this is route paramteter
-    const itemId = req.params.value; 
+app.get("/item/:value", (req, res) => { //this is route parameter
+    const itemId = req.params.value; //:value is a route parameter from /item/123 , req.pa.value = "123"
     const item = sv.getItemById(itemId); 
     res.json(item);
 });
@@ -123,17 +238,19 @@ app.get("/item/:value", (req, res) => { //this is route paramteter
 
 app.get("/categories", (req, res) => {
     sv.getCategories()
-        .then((data) => res.json(data)) 
-        .catch((err) => res.status(404).json({ message: err })); 
+        .then((data) => res.render('categories',{ categories : data })) 
+        .catch((err) => res.render('categories',{ message : "no results" })) 
 });
 
 app.get('/items/add', (req,res) => {
-    res.sendFile(path.join(__dirname, 'views','addItem.html'));
+    //res.sendFile(path.join(__dirname, 'views','addItem.html'));
+    res.render('addItem');
 });
 
 app.use((req, res) => {
     res.status(404).send("Page Not Found");
 });
+
 
 sv.initialize()
     .then(() => {
@@ -144,3 +261,5 @@ sv.initialize()
     .catch((err) => {
         console.error(`ERROR: Failed to start server: ${err}`);
 });
+
+module.exports = app;

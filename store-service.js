@@ -115,6 +115,17 @@ function getItemById(id) {
     });
 }
 
+function getPublishedItemsByCategory(category) {
+    return new Promise((resolve, reject) => {
+        const publishedItems = items.filter(item => item.published === true && item.category == category);
+        if (publishedItems.length > 0) {
+            resolve(publishedItems);
+        } else {
+            reject("No results returned");
+        }
+    });
+}
+
 module.exports = { addItem, initialize, getAllItems, getPublishedItems, getCategories, 
-    getItemsByCategory, getItemsByMinDate, getItemById};
+    getItemsByCategory, getItemsByMinDate, getItemById, getPublishedItemsByCategory};
 

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=\, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM"
+          crossorigin="anonymous"
+    />
+    <script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
+        crossorigin="anonymous"
+    ></script>
+    <link href="/css/main.css" rel="stylesheet">
+    <title>Document</title>
+</head>
+<body>
+    <%- include('layouts/header') %>
+    <div class="row">
+        <section class="main col-md-9">
+          <% if (data.item) { %>
+              <item>
+              <div class="row">
+                  <div class="col-4">
+                  <h2><%= data.item.title %></h2>
+                  <img
+                      src="<%= data.item.featureImage %>"
+                      alt="feature Image"
+                      style="width:100%"
+                  />
+                  </div>
+      
+                  <div class="col-8"><br />
+                  <br />
+                  <div class="row">
+                      <div class="col-12">
+                          <%= data.item.body %>
+                      <br /><br />
+                      <strong>Price:</strong>
+                      $<%= data.item.price %><br />
+                      <strong>Category:</strong>
+                          <% data.categories.forEach(function(category) { %>
+                              <% if (category.id === data.item.category) { %>
+                                  <%= category.category %>
+                              <% } %>
+                          <% }); %>
+                      <strong>Last Updated:</strong>
+                      <%= data.item.postDate %>
+                      </div>
+                  </div>
+                  </div>
+              </div>
+              </item>
+          <% } else { %>
+              <div class="col-md-12 text-center">
+              <h2><%= data.message %></h2>
+              <p>Please try another Post / Category</p>
+              </div>
+          <% } %>
+        </section>
+      
+        <aside class="col-md-3">
+          <br /><br />
+          <% if (data.items) { %>
+              <h4>Items</h4>
+              <ul class="list-group">
+              <% data.items.forEach(function(item) { %>
+                  <a href="/shop/<%= item.id %>?category=<%= data.viewingCategory %>" class="list-group-item"><%= item.title %></a>
+              <% }); %>
+              </ul>
+          <% } %>
+      
+          <% if (data.categories) { %>
+          <h4>Categories</h4>
+      
+          <ul class="list-group">
+            <% data.categories.forEach(function(category) { %>      
+              <a href="/shop?category=<%= category.id %>" class="list-group-item"><%= category.category %></a>
+            <% }); %>
+          </ul>
+          <% } %>
+        </aside>
+      </div>      
+</body>
