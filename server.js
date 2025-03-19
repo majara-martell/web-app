@@ -14,12 +14,10 @@ Cyclic Web App URL: web322-app-nine-chi.vercel.app
 GitHub Repository URL: https://github.com/majara-martell_seneca/web322-app.git
 ********************************************************************************/
 const express = require("express");
-//const exphbs = require("express-handlebars");//express handlebars
+
 const app = express();
 const path = require("path");
 const sv = require("./store-service.js"); 
-const itemData = require("./store-service");
-const ejsLayouts = require('express-ejs-layouts');
 //Cloudinary: more libraries
 const multer = require("multer"); 
 const cloudinary = require('cloudinary').v2; 
@@ -38,20 +36,35 @@ cloudinary.config({
 
 const upload = multer(); 
 
-app.use(function(req,res,next){
+app.use(function(req,res,next){    
     //req.path: contains the url path of the current req: sample.com/items/add
     let route = req.path.substring(1);  //req.path: '/items/add' -> 'items/add'
-    app.locals.activeRoute = "/" + (isNaN(route.split('/')[1]) ? route.replace(/\/(?!.*)/, "") : route.replace(/\/(.*)/, ""));
-    app.locals.viewingCategory = req.query.category;
-    next();
+    res.locals.activeRoute = "/" + (isNaN(route.split('/')[1]) ? route.replace(/\/(?!.*)/, "") : route.replace(/\/(.*)/, ""));
+    res.locals.viewingCategory = req.query.category;
 
-    
+    app.locals.navLink = function(url, linkText) {
+        return `
+            <li class="nav-item">
+                <a href="${url}" class="nav-link ${url === res.locals.activeRoute ? 'active' : ''}">
+                    ${linkText}
+                </a>
+            </li>
+        `;
+    };
+
+    next();
 });
 
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.use(ejsLayouts);
+//my debugger
+app.use(function(req, res, next) {
+    console.log("Checking..."); // This should log every time a request is made
+    console.log(app.locals.activeRoute); // Check if navLink is set
+    next(); // Make sure to call next() to continue the request
+});
 
+app.set('views', path.join(__dirname, 'views'));
+
+app.set('view engine', 'ejs');
 
 app.post('/items/add', upload.single("featureImage"),(req,res) => {
     if(req.file){ 
@@ -109,7 +122,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => { 
     //res.sendFile(path.join(__dirname, 'views', 'about.html')); 
-    res.render('about');//about.ejs
+    res.render('shop');//about.ejs
 });
 
 app.get('/about', (req, res) => {
@@ -129,10 +142,10 @@ app.get("/shop", async (req, res) => {
       // if there's a "category" query, filter the returned items by category
       if (req.query.category) {
         // Obtain the published "item" by category
-        items = await itemData.getPublishedItemsByCategory(req.query.category);
+        items = await sv.getPublishedItemsByCategory(req.query.category);
       } else {
         // Obtain the published "items"
-        items = await itemData.getPublishedItems();
+        items = await sv.getPublishedItems();
       }
   
       // sort the published items by itemDate
@@ -150,7 +163,7 @@ app.get("/shop", async (req, res) => {
   
     try {
       // Obtain the full list of "categories"
-      let categories = await itemData.getCategories();
+      let categories = await sv.getCategories();
   
       // store the "categories" data in the viewData object (to be passed to the view)
       viewData.categories = categories;
@@ -176,10 +189,10 @@ app.get('/shop/:id', async (req, res) => {
         // if there's a "category" query, filter the returned items by category
         if(req.query.category){
             // Obtain the published "items" by category
-            items = await itemData.getPublishedItemsByCategory(req.query.category);
+            items = await sv.getPublishedItemsByCategory(req.query.category);
         }else{
             // Obtain the published "items"
-            items = await itemData.getPublishedItems();
+            items = await sv.getPublishedItems();
         }
   
         // sort the published items by itemDate
@@ -194,14 +207,14 @@ app.get('/shop/:id', async (req, res) => {
   
     try{
         // Obtain the item by "id"
-        viewData.item = await itemData.getItemById(req.params.id);
+        viewData.item = await sv.getItemById(req.params.id);
     }catch(err){
         viewData.message = "no results"; 
     }
   
     try{
         // Obtain the full list of "categories"
-        let categories = await itemData.getCategories();
+        let categories = await sv.getCategories();
   
         // store the "categories" data in the viewData object (to be passed to the view)
         viewData.categories = categories;
@@ -217,15 +230,15 @@ app.get("/items", (req, res) => {
     if(req.query.category){// query = ? | if i see: /items?category=value | ? represents query 
         sv.getItemsByCategory(req.query.category)
             .then((data) => res.render("items", {items: data}))
-            .catch((err) => res.render("posts", {message: "no results"}))
+            .catch((err) => res.render("404", {message: "no results"}))
     } else if(req.query.minDate) { 
         sv.getItemsByMinDate(req.query.minDate)
             .then((data) => res.render("items", {items: data}))
-            .catch((err) => res.render("posts", {message: "no results"}))
+            .catch((err) => res.render("404", {message: "no results"}))
     } else {
         sv.getAllItems()
             .then((data) => res.render("items", {items: data}))
-            .catch((err) => res.render("posts", {message: "no results"}))
+            .catch((err) => res.render("404", {message: "no results"}))
     }
 });
 
@@ -239,7 +252,7 @@ app.get("/item/:value", (req, res) => { //this is route parameter
 app.get("/categories", (req, res) => {
     sv.getCategories()
         .then((data) => res.render('categories',{ categories : data })) 
-        .catch((err) => res.render('categories',{ message : "no results" })) 
+        .catch((err) => res.render('404',{ message : "no results" })) 
 });
 
 app.get('/items/add', (req,res) => {
@@ -247,6 +260,9 @@ app.get('/items/add', (req,res) => {
     res.render('addItem');
 });
 
+app.get('/oops', (req,res) =>{
+    res.render('404');
+})
 app.use((req, res) => {
     res.status(404).send("Page Not Found");
 });
@@ -259,7 +275,7 @@ sv.initialize()
         });
     })
     .catch((err) => {
-        console.error(`ERROR: Failed to start server: ${err}`);
+        res.render('404');
 });
 
 module.exports = app;
