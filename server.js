@@ -56,11 +56,7 @@ app.use(function(req,res,next){
 });
 
 //my debugger
-app.use(function(req, res, next) {
-    console.log("Checking..."); // This should log every time a request is made
-    console.log(app.locals.activeRoute); // Check if navLink is set
-    next(); // Make sure to call next() to continue the request
-});
+
 
 app.set('views', path.join(__dirname, 'views'));
 
@@ -116,23 +112,17 @@ app.post('/items/add', upload.single("featureImage"),(req,res) => {
         
     } 
 });
-
+const itemsFilePath = path.join(__dirname, 'data', 'items.json');
+const categoriesFilePath = path.join(__dirname, 'data', 'categories.json');
 app.use(express.static('public'));//makes the public folder publicly accessible 
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/', (req, res) => { 
-    //res.sendFile(path.join(__dirname, 'views', 'about.html')); 
-    res.render('shop');//about.ejs
-});
 
 app.get('/about', (req, res) => {
     //res.sendFile(path.join(__dirname, 'views', 'about.html'));
     res.render('about');//about.ejs
 });
 
-//retrieved from the link provided
-app.get("/shop", async (req, res) => {
-    // Declare an object to store properties for the view
+async function getShopData(req){
     let viewData = {};
   
     try {
@@ -170,11 +160,20 @@ app.get("/shop", async (req, res) => {
     } catch (err) {
       viewData.categoriesMessage = "no results";
     }
-  
-    // render the "shop" view with all of the data (viewData)
-    res.render("shop", { data: viewData });
-  });
 
+    return viewData;
+}
+
+app.get('/', async (req, res) => { 
+    //before: res.sendFile(path.join(__dirname, 'views', 'about.html')); 
+    let viewData = await getShopData(req);
+    res.render('shop', { data: viewData });//it will redirect from / to /shop by calling getShopData function
+});
+
+app.get("/shop", async (req, res) => {
+    let viewData = await getShopData(req);
+    res.render("shop", { data: viewData });
+});
   
 app.get('/shop/:id', async (req, res) => {
 
@@ -223,8 +222,9 @@ app.get('/shop/:id', async (req, res) => {
     }
   
     // render the "shop" view with all of the data (viewData)
+    console.log("Rendering shop page with data:", viewData);
     res.render("shop", {data: viewData})
-  });
+});
   
 app.get("/items", (req, res) => {
     if(req.query.category){// query = ? | if i see: /items?category=value | ? represents query 
@@ -263,6 +263,7 @@ app.get('/items/add', (req,res) => {
 app.get('/oops', (req,res) =>{
     res.render('404');
 })
+
 app.use((req, res) => {
     res.status(404).send("Page Not Found");
 });
@@ -275,6 +276,7 @@ sv.initialize()
         });
     })
     .catch((err) => {
+        console.error("Error initializing server:", err);
         process.exit(1);
 });
 

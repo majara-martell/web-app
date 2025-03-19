@@ -20,39 +20,40 @@
     <%- include('layouts/header') %>
     <div class="row">
         <section class="main col-md-9">
-          <% if (data.item) { %>
+          <% if (data.item.id) { %>
               <item>
-              <div class="row">
-                  <div class="col-4">
-                  <h2><%= data.item.title %></h2>
-                  <img
-                      src="<%= data.item.featureImage %>"
-                      alt="feature Image"
-                      style="width:100%"
-                  />
-                  </div>
+                    <div class="row">
+                        <div class="col-4">
+                            <h2><%= data.item.title %></h2>
+                            <img
+                                src="<%= data.item.featureImage %>"
+                                alt="feature Image"
+                                style="width:100%"
+                            />
+                        </div>
+                    
       
-                  <div class="col-8"><br />
-                  <br />
-                  <div class="row">
-                      <div class="col-12">
-                          <%= data.item.body %>
-                      <br /><br />
-                      <strong>Price:</strong>
-                      $<%= data.item.price %><br />
-                      <strong>Category:</strong>
-                          <% data.categories.forEach(function(category) { %>
-                              <% if (category.id === data.item.category) { %>
-                                  <%= category.category %>
-                              <% } %>
-                          <% }); %>
-                      <strong>Last Updated:</strong>
-                      <%= data.item.postDate %>
-                      </div>
-                  </div>
-                  </div>
-              </div>
-              </item>
+                        <div class="col-8"><br />
+                            <br />
+                            <div class="row">
+                                <div class="col-12">
+                                    <%= data.item.body %>
+                                        <br /><br />
+                                        <strong>Price:</strong>
+                                        $<%= data.item.price %><br />
+                                        <strong>Category:</strong>
+                                        <% data.categories.forEach(function(category) { %>
+                                            <% if (category.id === data.item.category) { %>
+                                                <%= category.category %>
+                                            <% } %>
+                                        <% }); %>
+                                        <strong>Last Updated:</strong>
+                                    <%= data.item.postDate %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </item>
           <% } else { %>
               <div class="col-md-12 text-center">
               <h2><%= data.message %></h2>
