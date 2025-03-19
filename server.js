@@ -275,7 +275,7 @@ sv.initialize()
         });
     })
     .catch((err) => {
-        res.render('404');
+        process.exit(1);
 });
 
 module.exports = app;
