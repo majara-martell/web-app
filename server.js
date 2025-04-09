@@ -8,7 +8,7 @@ Name: Matias Alejandro Jara Martell
 Student ID: 151838232
 Date: 2025 04 08
 Replit Web App URL: https://replit.com/join/aabvhxzlom-majara-martell
-GitHub Repository URL: https://github.com/majara-martell_seneca/web322-app.git
+GitHub Repository URL: https://github.com/majara-martell/web-app.git
 ********************************************************************************/
 const express = require("express");
 
