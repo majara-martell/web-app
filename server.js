@@ -1,21 +1,20 @@
 /*********************************************************************************
-WEB322 – Assignment 04
-I declare that this assignment is my own work in accordance with Seneca 
-Academic Policy. No part * of this assignment has been copied manually or
-electronically from any other source (including 3rd party web sites) or 
-distributed to other students. I acknowledge that violation of this policy
-to any degree results in a ZERO for this assignment and possible failure of
-the course.
+* WEB322 – Assignment 05
+* I declare that this assignment is my own work in accordance with Seneca Academic Policy. No part of this
+* assignment has been copied manually or electronically from any other source (including web sites) or
+* distributed to other students.
 
 Name: Matias Alejandro Jara Martell
 Student ID: 151838232
-Date: 2025 02 27
-Cyclic Web App URL: web322-app-nine-chi.vercel.app
+Date: 2025 04 08
+Vercel Web App URL: https://web322-mze3ng1zr-matias-projects-8d66be0b.vercel.app
 GitHub Repository URL: https://github.com/majara-martell_seneca/web322-app.git
 ********************************************************************************/
 const express = require("express");
 
 const app = express();
+app.use(express.urlencoded({ extended: true })); //for form data
+
 const path = require("path");
 const sv = require("./store-service.js"); 
 //Cloudinary: more libraries
@@ -41,79 +40,33 @@ app.use(function(req,res,next){
     let route = req.path.substring(1);  //req.path: '/items/add' -> 'items/add'
     res.locals.activeRoute = "/" + (isNaN(route.split('/')[1]) ? route.replace(/\/(?!.*)/, "") : route.replace(/\/(.*)/, ""));
     res.locals.viewingCategory = req.query.category;
-
-    app.locals.navLink = function(url, linkText) {
-        return `
-            <li class="nav-item">
-                <a href="${url}" class="nav-link ${url === res.locals.activeRoute ? 'active' : ''}">
-                    ${linkText}
-                </a>
-            </li>
-        `;
-    };
-
     next();
 });
 
-//my debugger
+
+app.locals.navLink = function(url, linkText, activeRoute) {
+    return `
+        <li class="nav-item">
+            <a href="${url}" class="nav-link text-white ${url === activeRoute ? 'active' : ''}">
+                ${linkText}
+            </a>
+        </li>
+    `;
+};
+
+app.locals.formatDate = function(dateObj){
+    let year = dateObj.getFullYear();
+    let month = (dateObj.getMonth() + 1).toString();
+    let day = dateObj.getDate().toString();
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2,'0')}`;
+}
 
 
 app.set('views', path.join(__dirname, 'views'));
 
 app.set('view engine', 'ejs');
 
-app.post('/items/add', upload.single("featureImage"),(req,res) => {
-    if(req.file){ 
-        let streamUpload = (req) => { 
-            return new Promise((resolve, reject) => { 
-                let stream = cloudinary.uploader.upload_stream( 
-                    (error, result) => { 
-                        if (result) { 
-                            resolve(result); 
-                        } else { 
-                            reject(error); 
-                        } 
-                    } 
-                ); 
-     
-                streamifier.createReadStream(req.file.buffer).pipe(stream); 
-            }); 
-        }; 
-     
-        async function upload(req) { 
-            let result = await streamUpload(req); 
-            console.log(result); 
-            return result; 
-        } 
-     
-        upload(req).then((uploaded)=>{ 
-            processItem(uploaded.url); 
-        }); 
-    }else{ 
-        processItem(""); 
-    } 
 
-    function processItem(imageUrl){ 
-        req.body.featureImage = imageUrl; 
-    
-        // TODO: Process the req.body and add it as a new Item before redirecting to /items 
-        let newItem = {
-            title: req.body.title,
-            body: req.body.body,
-            price: req.body.price,
-            featureImage: req.body.featureImage, 
-            category: req.body.category,
-            published: req.body.published
-        };
-    
-        sv.addItem(newItem)
-            .then(() => res.redirect("/items"))
-            .catch((err) => res.status(500).json({ message : err }));
-        
-    } 
-});
-const itemsFilePath = path.join(__dirname, 'data', 'items.json');
-const categoriesFilePath = path.join(__dirname, 'data', 'categories.json');
 app.use(express.static('public'));//makes the public folder publicly accessible 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -128,16 +81,18 @@ async function getShopData(req){
     try {
       // declare empty array to hold "item" objects
       let items = [];
-  
+      
       // if there's a "category" query, filter the returned items by category
       if (req.query.category) {
         // Obtain the published "item" by category
         items = await sv.getPublishedItemsByCategory(req.query.category);
+       
       } else {
         // Obtain the published "items"
         items = await sv.getPublishedItems();
+        
       }
-  
+      
       // sort the published items by itemDate
       items.sort((a, b) => new Date(b.itemDate) - new Date(a.itemDate));
   
@@ -147,8 +102,10 @@ async function getShopData(req){
       // store the "items" and "item" data in the viewData object (to be passed to the view)
       viewData.items = items;
       viewData.item = item;
+
     } catch (err) {
-      viewData.message = "no results";
+        //console.log('error',err )
+      viewData.message = "No Results";
     }
   
     try {
@@ -160,16 +117,19 @@ async function getShopData(req){
     } catch (err) {
       viewData.categoriesMessage = "no results";
     }
-
+    
+    
     return viewData;
 }
 
+/*|------------------------- Main -------------------------  */
 app.get('/', async (req, res) => { 
     //before: res.sendFile(path.join(__dirname, 'views', 'about.html')); 
     let viewData = await getShopData(req);
     res.render('shop', { data: viewData });//it will redirect from / to /shop by calling getShopData function
 });
 
+/*|------------------------- Shop -------------------------  */
 app.get("/shop", async (req, res) => {
     let viewData = await getShopData(req);
     res.render("shop", { data: viewData });
@@ -222,43 +182,167 @@ app.get('/shop/:id', async (req, res) => {
     }
   
     // render the "shop" view with all of the data (viewData)
-    console.log("Rendering shop page with data:", viewData);
+    console.log("Final viewData:", viewData);
     res.render("shop", {data: viewData})
 });
-  
+
+/*|------------------------- items -------------------------  */
 app.get("/items", (req, res) => {
+    const isFiltered = req.query.category || req.query.minDate;
+
     if(req.query.category){// query = ? | if i see: /items?category=value | ? represents query 
         sv.getItemsByCategory(req.query.category)
-            .then((data) => res.render("items", {items: data}))
-            .catch((err) => res.render("404", {message: "no results"}))
+            .then((data) => {
+                if(data.length > 0){
+                    res.render("items", {items: data, message:"", isFiltered: true})
+                } else{
+                    res.render("items", {message: "No Results", items: [], isFiltered: true});
+                }
+            })
+            .catch((err) => {
+                res.render("404", {message: "no results", isFiltered:true})
+            })
     } else if(req.query.minDate) { 
         sv.getItemsByMinDate(req.query.minDate)
-            .then((data) => res.render("items", {items: data}))
-            .catch((err) => res.render("404", {message: "no results"}))
+            .then((data) => {
+                if(data.length > 0){
+                    res.render("items", {items: data, message:"", isFiltered: true})
+                } else{
+                    res.render("items", {message: "no results", isFiltered: true});
+                }
+            })
+            .catch((err) => {
+                res.render("404", {message: "no results",isFiltered:true})
+            })
     } else {
         sv.getAllItems()
-            .then((data) => res.render("items", {items: data}))
-            .catch((err) => res.render("404", {message: "no results"}))
+            .then((data) => {
+                if(data.length > 0){
+                    res.render("items", {items: data, message:"", isFiltered: false})
+                } else{
+                    res.render("items", {message: "no results", isFiltered: false});
+                }
+            })
+            .catch((err) => {
+                res.render("404", {message: "no results", isFiltered:true})
+                
+            })
     }
 });
-
+//this is item , cannot be changed to items
 app.get("/item/:value", (req, res) => { //this is route parameter
     const itemId = req.params.value; //:value is a route parameter from /item/123 , req.pa.value = "123"
     const item = sv.getItemById(itemId); 
     res.json(item);
 });
 
+app.get('/items/add', (req,res) => {
+    sv.getCategories()
+        .then((categories) => {
+            res.render('addItem', { categories: categories });
+        })
+        .catch((err) => {
+            res.render('addItem', { categories: [] });
+        });
+});
 
+app.post('/items/add', upload.single("featureImage"),(req,res) => {
+    if(req.file){ 
+        let streamUpload = (req) => { 
+            return new Promise((resolve, reject) => { 
+                let stream = cloudinary.uploader.upload_stream( 
+                    (error, result) => { 
+                        if (result) { 
+                            resolve(result); 
+                        } else { 
+                            reject(error); 
+                        } 
+                    } 
+                ); 
+     
+                streamifier.createReadStream(req.file.buffer).pipe(stream); 
+            }); 
+        }; 
+     
+        async function upload(req) { 
+            let result = await streamUpload(req); 
+            console.log(result); 
+            return result; 
+        } 
+     
+        upload(req).then((uploaded)=>{ 
+            processItem(uploaded.url); 
+        }); 
+    }else{ 
+        processItem(""); 
+    } 
+
+    function processItem(imageUrl){ 
+        req.body.featureImage = imageUrl; 
+    
+        // TODO: Process the req.body and add it as a new Item before redirecting to /items 
+        let newItem = {
+            title: req.body.title,
+            body: req.body.body,
+            price: req.body.price,
+            featureImage: req.body.featureImage, //chck this in storsrvic
+            category: req.body.category,
+            published: req.body.published
+        };
+    
+        sv.addItem(newItem)
+            .then(() => res.redirect("/items"))
+            .catch((err) => res.status(500).json({ message : err }));
+        
+    } 
+});
+
+app.get('/items/delete/:id', (req, res) => {
+    sv.deletePostById(parseInt(req.params.id))//str to num
+        .then(() => res.redirect('/items'))
+        .catch(err => res.status(500).send("Unable to Remove Item / Item not found"));
+});
+
+/*|------------------------- Categories -------------------------  */
 app.get("/categories", (req, res) => {
     sv.getCategories()
-        .then((data) => res.render('categories',{ categories : data })) 
-        .catch((err) => res.render('404',{ message : "no results" })) 
+        .then((category) => {
+            if(category.length > 0) {
+                res.render('categories',{ categories : category })
+            } else{
+                res.render('categories',{ categories: []})
+            }
+        })
+        .catch((err) => res.render('404',{ message : "no results" }))
 });
 
-app.get('/items/add', (req,res) => {
-    //res.sendFile(path.join(__dirname, 'views','addItem.html'));
-    res.render('addItem');
+//get to show the add category form
+app.get('/categories/add', (req, res) => {
+    res.render('addCategory');
 });
+
+//post for category creation
+app.post('/categories/add', (req, res) => {  
+    sv.addCategory(req.body)
+        .then(() => {
+            res.redirect('/categories')
+        })
+        .catch(err => res.status(500).send(err));
+});
+/*app.post('/categories/add', (req, res) => {
+    sv.addCategory(req.body)
+        .then(() => res.redirect('/categories'))
+        .catch(err => res.status(500).send(err));
+});
+*/
+//delete route for categories
+app.get('/categories/delete/:id', (req, res) => {
+    sv.deleteCategoryById(parseInt(req.params.id))
+        .then(() => res.redirect('/categories'))
+        .catch(err => res.status(500).send("Unable to Remove Category / Category not found"));
+});
+
+
 
 app.get('/oops', (req,res) =>{
     res.render('404');

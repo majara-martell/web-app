@@ -1,29 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=\, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-          rel="stylesheet"
-          integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM"
-          crossorigin="anonymous"
-    />
-    <script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
-        crossorigin="anonymous"
-    ></script>
-    <link href="/css/main.css" rel="stylesheet">
-    <title>Document</title>
+    <%- include('layouts/head') %>
 </head>
 <body>
     <%- include('layouts/header') %>
     <div class="row">
         <div class="col-md-12">
-            <h2>Items</h2>
-            <hr />
+            <div class="d-flex justify-content-between align-items-center p-3">
+                <h2>🗃️ Items
+                    <a href="/items/add" class="btn btn-success pull-right">Add Post</a>
+                </h2>
+                <% if (isFiltered) { %>
+                        <a href="/items" style="background-color:black" class="btn btn-secondary">🔙 Back to All Items</a>
+                <% } %>
+            </div>
+            <hr style="margin: 0rem 0;" />
             <div class="table-responsive">
-                <% if (items.length) { %>
+                <% if(message) { %>
+                    <div class="col-md-12">
+                        <strong><%= message %></strong>
+                    </div>
+                <% } else if (items && items.length > 0) { %>
                     <table class="table">
                         <thead>
                             <tr>
@@ -33,6 +31,7 @@
                                 <th>Price</th>
                                 <th>Category</th>
                                 <th>Published</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -41,23 +40,31 @@
                                     <td><%= item.id %></td>
                                     <td><%= item.title %></td>
                                     <td><%= item.postDate %></td>
-                                    <td><%= item.price %></td>
+                                    <td>$<%= item.price %></td>
                                     <td>
-                                        <a href="/items?category=<%= item.id %>"><%= item.category %></a>
+                                        <a href="/items?category=<%= item.category %>">
+                                            <%= item.category %>
+                                        </a>
                                     </td>
                                     <td><%= item.published %></td>
+                                    <td class="text-end">
+                                        <a href="/items/delete/<%= item.id %>" 
+                                            class="btn btn-danger btn-sm"
+                                            onclick="return confirm('Are you sure you want to delete this item?')">
+                                             Remove
+                                         </a>
+                                    </td>
                                 </tr>
                             <% }); %>
                         </tbody>
                     </table>
                 <% } else { %>
                     <div class="col-md-12">
-                        <strong><%= message %></strong>
+                        <strong>No items found</strong>
                     </div>
                 <% } %>
             </div>
         </div>
     </div>
-
 </body>
 </html>
