@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('layouts/head') %>
+</head>
+<body>
+    <%- include('layouts/header') %>
+    <h2>🌐 Log in                     
+    </h2>
+    <hr />
+
+<% if(errorMessage) { %>
+    <div class="alert alert-danger">
+        <strong>Error:</strong>
+        <%= errorMessage %>
+    </div>
+<% } else { %>
+    <form action="/login" method="POST">
+        <!-- typeof username !== 'undefined' will check if it s defined so that it can be refilled automatically-->
+        <input type="text" class="form-control mb-3" name="userName" placeholder="User Name" required value="<%= typeof userName !== 'undefined' ? userName : '' %>">
+        <input type="password" class="form-control mb-3" name="password" placeholder="Password" required>
+        <button type="text" class="btn btn-success mb-3" value="Login">Login</a><!--name="Login"-->
+    </form>
+<% } %>
+</body>
+</html>

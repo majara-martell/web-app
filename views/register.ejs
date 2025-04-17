@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('layouts/head') %>
+</head>
+<body>
+    <%- include('layouts/header') %>
+    <h2>🌐 Register                     
+    </h2>
+    <hr />
+    <% if(errorMessage) { %>
+        <div class="alert alert-danger">
+            <strong>Error:</strong>
+            <%= errorMessage %>
+        </div>
+    <% } %>
+    <% if(!successMessage){ %>
+        <form action="/register" method="POST">
+            <input type="text" class="form-control mb-3" name="userName" placeholder="User Name" required value="<%= typeof userName !== 'undefined' ? userName : '' %>">
+            <input type="password" class="form-control mb-3" name="password" placeholder="Password" required>
+            <input type="password" class="form-control mb-3" name="password2" placeholder="Confirm Password" required>
+            <input type="text" class="form-control mb-3" name="email" placeholder="Email Address" required>
+            <button type="text" class="btn btn-success mb-3" value="Register">Register</button>
+        </form>
+    <% } else { %> 
+        <div class="alert alert-success"> 
+            <strong>Success:</strong> 
+            <%= successMessage %>
+        </div>
+        <a class="btn btn-success pull-right" href="/login">
+            &nbsp;&nbsp;&nbsp;Proceed to Log in&nbsp;&nbsp;&nbsp;
+        </a>
+        <br /><br /><br />
+    <% } %>
+</body>
+</html>

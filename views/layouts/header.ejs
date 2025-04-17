@@ -9,12 +9,39 @@
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav">
-                
-                <%- navLink('/about', 'About') %>
-                <%- navLink('/items', 'Items') %>
-                <%- navLink('/categories', 'Categories') %>
-                <%- navLink('/shop', 'Shop') %>
+               <%- navLink('/about', 'About') %>
+               <%- navLink('/shop', 'Shop') %>
             </ul>
+            <!--             
+                <ul class="navbar-nav ms-auto">
+               <%- navLink('/items', 'Items') %>
+               <%- navLink('/categories', 'Categories') %>
+                </ul>
+            -->
+            <% if(session.user){ %>
+                <div class="d-flex ms-auto">
+                    <ul class="navbar-nav px-3">
+                        <%- navLink('/items', 'Items') %>
+                        <%- navLink('/categories', 'Categories') %>
+                    </ul>
+                    <form class="navbar-form">
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                              👤 <%= session.user.userName %>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="userMenu">
+                              <li><a class="dropdown-item" href="/userHistory">User History</a></li>
+                              <li><a class="dropdown-item" href="/logout">Log Out</a></li>
+                            </ul>
+                          </div>    
+                    </form>
+                </div>
+            <% } else { %>
+                <form class="navbar-form navbar-right ms-auto">
+                    <a href="/register" class="btn btn-success"><span class="glyphicon glyphicon-cog"></span>&nbsp;&nbsp;Register</a>
+                    <a href="/login" class="btn btn-primary"><span class="glyphicon glyphicon-chevron-right"></span>&nbsp;&nbsp;Log In</a>
+                </form>
+            <% } %>
         </div>
        
         <!-- /.navbar-collapse -->

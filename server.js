@@ -1,8 +1,8 @@
 /*********************************************************************************
-* WEB322 – Assignment 05
+* WEB322 – Assignment 06
 * I declare that this assignment is my own work in accordance with Seneca Academic Policy. No part of this
 * assignment has been copied manually or electronically from any other source (including web sites) or
-* distributed to other students.
+* distributed to other students
 
 Name: Matias Alejandro Jara Martell
 Student ID: 151838232
@@ -10,6 +10,11 @@ Date: 2025 04 08
 Replit Web App URL: https://replit.com/join/aabvhxzlom-majara-martell
 GitHub Repository URL: https://github.com/majara-martell/web-app.git
 ********************************************************************************/
+//auth-service
+const authData = require("./auth-service");
+//client-sessions
+const clientSession = require("client-sessions");
+
 const express = require("express");
 
 const app = express();
@@ -17,10 +22,13 @@ app.use(express.urlencoded({ extended: true })); //for form data
 
 const path = require("path");
 const sv = require("./store-service.js"); 
+
+
 //Cloudinary: more libraries
 const multer = require("multer"); 
 const cloudinary = require('cloudinary').v2; 
 const streamifier = require('streamifier');
+const { error } = require("console");
 
 //connect
 const PORT = process.env.PORT || 8080;
@@ -34,6 +42,30 @@ cloudinary.config({
 });
 
 const upload = multer(); 
+
+//client-sessions
+app.use(
+    clientSession({
+        cookieName: "session",
+        secret: "o6LjQ5EVNC28ZgK64hDELM18ScpFQr",
+        duration: 2 * 60 * 1000, // 2 minutes
+        activeDuration: 1000 * 60, // 1 minute
+    })
+);
+
+//client-sessions : session middleware
+app.use(function(req, res, next) {
+    res.locals.session = req.session;//is an object that contains user session data
+    next();
+});
+
+function ensureLogin(req, res, next) {
+    if (!req.session.user) {
+      res.redirect('/login');
+    } else {
+      next();
+    }
+}
 
 app.use(function(req,res,next){    
     //req.path: contains the url path of the current req: sample.com/items/add
@@ -187,7 +219,7 @@ app.get('/shop/:id', async (req, res) => {
 });
 
 /*|------------------------- items -------------------------  */
-app.get("/items", (req, res) => {
+app.get("/items", ensureLogin, (req, res) => {
     const isFiltered = req.query.category || req.query.minDate;
 
     if(req.query.category){// query = ? | if i see: /items?category=value | ? represents query 
@@ -230,13 +262,13 @@ app.get("/items", (req, res) => {
     }
 });
 //this is item , cannot be changed to items
-app.get("/item/:value", (req, res) => { //this is route parameter
+app.get("/item/:value", ensureLogin, (req, res) => { //this is route parameter
     const itemId = req.params.value; //:value is a route parameter from /item/123 , req.pa.value = "123"
     const item = sv.getItemById(itemId); 
     res.json(item);
 });
 
-app.get('/items/add', (req,res) => {
+app.get('/items/add', ensureLogin,(req,res) => {
     sv.getCategories()
         .then((categories) => {
             res.render('addItem', { categories: categories });
@@ -246,7 +278,7 @@ app.get('/items/add', (req,res) => {
         });
 });
 
-app.post('/items/add', upload.single("featureImage"),(req,res) => {
+app.post('/items/add', upload.single("featureImage"), ensureLogin, (req,res) => {
     if(req.file){ 
         let streamUpload = (req) => { 
             return new Promise((resolve, reject) => { 
@@ -297,14 +329,14 @@ app.post('/items/add', upload.single("featureImage"),(req,res) => {
     } 
 });
 
-app.get('/items/delete/:id', (req, res) => {
+app.get('/items/delete/:id', ensureLogin, (req, res) => {
     sv.deletePostById(parseInt(req.params.id))//str to num
         .then(() => res.redirect('/items'))
         .catch(err => res.status(500).send("Unable to Remove Item / Item not found"));
 });
 
 /*|------------------------- Categories -------------------------  */
-app.get("/categories", (req, res) => {
+app.get("/categories", ensureLogin, (req, res) => {
     sv.getCategories()
         .then((category) => {
             if(category.length > 0) {
@@ -317,24 +349,19 @@ app.get("/categories", (req, res) => {
 });
 
 //get to show the add category form
-app.get('/categories/add', (req, res) => {
+app.get('/categories/add', ensureLogin, (req, res) => {
     res.render('addCategory');
 });
 
 //post for category creation
-app.post('/categories/add', (req, res) => {  
+app.post('/categories/add', ensureLogin, (req, res) => {  
     sv.addCategory(req.body)
         .then(() => {
             res.redirect('/categories')
         })
         .catch(err => res.status(500).send(err));
 });
-/*app.post('/categories/add', (req, res) => {
-    sv.addCategory(req.body)
-        .then(() => res.redirect('/categories'))
-        .catch(err => res.status(500).send(err));
-});
-*/
+
 //delete route for categories
 app.get('/categories/delete/:id', (req, res) => {
     sv.deleteCategoryById(parseInt(req.params.id))
@@ -348,20 +375,67 @@ app.get('/oops', (req,res) =>{
     res.render('404');
 })
 
+app.get('/login', (req, res) => {   
+    res.render('login', { errorMessage: ""});
+});
+
+app.get('/register', (req, res) => {
+    res.render('register', { errorMessage: "", successMessage: "" });
+});
+
+app.post('/register', (req, res) => {
+    authData.registerUser(req.body)
+        .then(()=> {
+            res.render('register', { successMessage: "User created successfully!", errorMessage: "" });
+        })
+        .catch((err) => {
+            res.render('register', {errorMessage: err, userName: req.body.userName, successMessage: ""});
+        });
+    }
+);
+
+app.post('/login', (req, res) => {
+    req.body.userAgent = req.get('User-Agent');
+    authData.checkUser(req.body)
+        .then((user) => {
+            req.session.user = {
+                userName: user.userName,
+                email: user.email,
+                loginHistory: user.loginHistory,
+            };
+            res.redirect('/items');
+        })
+        .catch((err) => {
+            res.render('login', { errorMessage: err, userName: req.body.userName });
+        });
+}
+);
+
+app.get('/logout', (req, res) => {
+    req.session.reset();
+    res.redirect('/');
+}
+);
+
+app.get('/userHistory', ensureLogin, (req, res) => {
+    res.render('userHistory', { user: req.session.user });
+});
+
 app.use((req, res) => {
     res.status(404).send("Page Not Found");
 });
 
+/**|------------------------- Auth -------------------------  */
 
 sv.initialize()
-    .then(() => {
-        app.listen(PORT, () => {
-            console.log(`Server is running on http://localhost:${PORT}`);  
-        });
-    })
-    .catch((err) => {
-        console.error("Error initializing server:", err);
-        process.exit(1);
+.then(authData.initialize)
+.then(function(){
+    app.listen(PORT, function(){
+        console.log("app listening on: " + PORT)
+    });
+}).catch(function(err){
+    console.log("unable to start server: " + err);
+    process.exit(1);
 });
 
 module.exports = app;
